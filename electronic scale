@@ -1,0 +1,67 @@
+#include<reg52.h>
+#include "uart.h"
+#include "stdio.h"
+sbit ADDO = P1^5;
+sbit ADSK = P1^0;
+
+unsigned char display[30];
+
+void Delay1ms()		//@18.432MHz
+{
+	unsigned char i, j;
+
+	i = 18;
+	j = 235;
+	do
+	{
+		while (--j);
+	} while (--i);
+}
+
+void DelayMS(int t)
+{
+	while(t--)
+	{
+		Delay1ms();
+	}
+}
+
+
+unsigned long ReadCount(void)
+{
+	unsigned long Count;
+	unsigned char i;
+	
+	ADSK=0;  // ¶¨ÒåÐÅºÅÇý¶¯Òý½Å PD_SCK 
+	Count=0; // ¶¨Òå½ÓÊÕÊý¾Ý±äÁ¿Count 
+	while(ADDO); //µ±DOUTÎªµÍµçÆ½Ê±¿ªÊ¼½ÓÊÕÊý¾Ý
+	for (i=0;i<24;i++) //·¢ËÍ25¸öÖÜÆÚµÄÊ±ÖÓÐÅºÅ¼´ÔöÒæÎª128
+	{  
+	ADSK=1;
+	Count=Count<<1;      //´Ó¸ßÎ»¿ªÊ¼½ÓÊÕÊý¾Ý´ËÊ±×óÒÆµÄÊÇ0 
+	ADSK=0;
+	if(ADDO) Count++;    //Èç¹ûDOUTÎª1 ÔòCountÎª1 
+	}
+
+	ADSK=1;  //PD_SCK ÖÃ1 ±íÊ¾·¢ËÍÍê³É
+	Count = Count^0x800000;  //Òì»òºó¶ÁÈ¡Êý¾Ý
+	ADSK=0;  //PD_SCKÖÃ0 µÈ´ýDOUT¿ªÊ¼½ÓÊÕÊý¾Ý
+	return(Count);
+}
+
+void main()
+{
+	unsigned long Value[2],temp;
+	UartInit();
+	while(1)
+	 {
+		temp = ReadCount();
+		Value[0] = temp/4.3;
+		Value[1] = Value[0]*1000;
+		sprintf(display,"%d,%d\r\n",Value[0],Value[1]);
+	  U1SendString(display);
+		DelayMS(500);
+		
+		//U1SendString("hello");
+	 }
+}
